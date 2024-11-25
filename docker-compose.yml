@@ -1,0 +1,47 @@
+services:
+  db:
+    image: mysql:8.0
+    environment:
+      MYSQL_ROOT_PASSWORD: rootpassword
+      MYSQL_DATABASE: EmployeeDb
+    ports:
+      - "3306:3306"
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    volumes:
+      - "C:/volumes/mysql:/var/lib/mysql"
+    networks:
+      - employeemanagement_network
+
+  employeemanagement.api:
+    build:
+      context: .
+      dockerfile: EmployeeManagementAPI/Dockerfile
+    environment:
+      - DB_CONNECTION_STRING=Server=db;Database=EmployeeDb;User=root;Password=rootpassword;
+      - ASPNETCORE_ENVIRONMENT=Development
+    depends_on:
+      db:
+        condition: service_healthy
+    ports:
+      - "5000:80"
+    networks:
+      - employeemanagement_network
+
+  employeemanagement.front:
+    build:
+      context: ./employeemanagement.front
+      dockerfile: Dockerfile
+    ports:
+      - "5173:5173"
+    networks:
+      - employeemanagement_network
+    depends_on:
+      - employeemanagement.api
+
+networks:
+  employeemanagement_network:
+    driver: bridge
